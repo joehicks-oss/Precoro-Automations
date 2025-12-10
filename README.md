@@ -1,136 +1,103 @@
 # Precoro PO Helpers Userscript v3.0
 
-A Tampermonkey userscript that bundles several PO line-item helpers for Precoro. It automates copying the PO-level Delivery Date to line items, saving rows, confirming the document, and provides quick-fill tools for Request By, PR #, and Approved By. It also adds a “Send to supplier + note” helper that opens the send drawer and inserts a standard message.
+This Tampermonkey userscript adds a small control bar to Precoro purchase orders to speed up common tasks. You can copy the PO-level Delivery Date to all line items, save each line, confirm the document, auto-accept the “Yes” confirmation modal, open “Send to supplier,” and insert a standard note. You also get quick bulk-fill tools for Request By, PR #, and Approved By.
 
-## What this script does
+---
 
-### 1. Copy PO Delivery Date to all line Delivery Dates
+## Installation
 
-When triggered, the script:
+1. **Install Tampermonkey**
 
-1. Reads the PO-level Delivery Date.
+* Add the Tampermonkey extension in Chrome or Edge.
 
-* Primary selector: `span[data-test-id="field:required_date"]`
-* Fallback: searches for a nearby label containing “Delivery Date”.
+2. **Create a new script**
 
-2. Unlocks each line for editing by clicking each visible row edit (pencil) button.
+* Click the Tampermonkey icon.
+* Select **Create a new script**.
 
-* Selector targets:
+3. **Paste the full userscript**
 
-  * `tbody tr button[data-test-id="action-button:edit"]`
-  * `tbody tr .action-button--edit`
+* Delete the default template.
+* Paste the entire script.
 
-3. Locates line-level Delivery Date inputs.
+4. **Save**
 
-* Primary selector:
+* File → Save.
 
-  * `input[data-test-id="input:icf_Delivery Date"]`
-* Fallback patterns:
+5. **Make sure it is enabled**
 
-  * `input[data-test-id^="input:icf_"][data-test-id*="Delivery"]` while excluding Request-related matches
-  * Column-header based discovery if test IDs change
+* In the Tampermonkey dashboard, confirm the script toggle is on.
 
-4. Sets each Delivery Date value with React-safe input events.
+This script runs on:
 
-* Uses the native `value` setter when available.
-* Fires `input`, `change`, simulated Enter key events, then `blur`.
+* `https://app.precoro.us/purchase/order/*`
 
-5. Saves each edited row.
+It does not run on:
 
-* Primary inline save selector:
+* `https://app.precoro.us/purchase/order/create/manual`
 
-  * `button[data-test-id="button:save"]`
-* Fallbacks include common Precoro inline save variants.
+---
 
-### 2. Post-run Confirm clicker
+## What you will see
 
-After the copy-and-save flow triggers, the script attempts to click the document-level **Confirm** button.
+A centered bottom bar with:
 
-* Primary selector: `button[data-test-id="button:confirm"]`
-* Fallback: any visible button containing text that matches `confirm`.
+* **Copy PO date → lines**
+* **Send to supplier + note**
+* **Request by:** input + Enter
+* **PR #:** input + Enter
+* **Approved by:** dropdown + Enter
 
-Heuristic used to decide when row editing appears finished:
+---
 
-* If there are no visible Delivery Date inputs AND no visible inline save buttons, the script assumes row saves are complete and proceeds to Confirm.
+## How to use
 
-### 3. Modal “Yes” auto-clicker
+### Copy PO Delivery Date to all line Delivery Dates
 
-If Precoro shows the confirmation modal:
+Use either:
 
-* The script looks for the dialog text:
+* Click **Copy PO date → lines**
+* Press **Alt + Shift + D**
 
-  * “Are you sure you want to confirm this document?”
-* Then clicks the **Yes** button.
-* It also watches DOM mutations as a safety net.
+What happens:
 
-### 4. Send to supplier + note
+1. The script reads the PO-level Delivery Date.
+2. It opens each line for editing (clicks the pencil icon).
+3. It fills each line’s Delivery Date with the PO date.
+4. It saves each edited row.
+5. It clicks **Confirm** on the document.
+6. If a confirmation modal appears, it clicks **Yes**.
 
-Adds a second quick-action button that:
+### Send to supplier + note
 
-1. Clicks the right-rail action button:
+Use either:
 
-* Primary selector:
+* Click **Send to supplier + note**
+* Press **Alt + Shift + S**
 
-  * `button[data-test-id="button:purchase_order.change_status_send"]`
-* Fallback:
+What happens:
 
-  * any button containing “Send to supplier”.
+1. The script clicks the right-side **Send to supplier** action.
+2. It waits for the send drawer to open.
+3. It fills the note editor with the preset template and preserves spacing.
 
-2. Waits for the send drawer/dialog.
+### Bulk-fill fields (Request By, PR #, Approved By)
 
-3. Fills the note editor (TipTap/ProseMirror) with this exact multi-paragraph template:
+Important:
 
-* Hello -
-*
-* Please see the attached PO. An order confirmation is required with the correct pricing and delivery dock date.
-*
-* Please send order confirmation to [PURCHASING@sendcutsend.com](mailto:PURCHASING@sendcutsend.com).
-*
-* Do not reply to Precoro.com.
-*
-* Thank you!
-*
-* Purchasing Department
-*
-* SendCutSend.com
+* These tools only fill **empty fields** on rows you have **already opened in edit mode**.
+* They do not automatically open rows.
 
-The filler clears the editor once per run, then inserts one paragraph per line to preserve spacing.
+How to use:
 
-### 5. Bulk-fill helpers for open rows
+1. Open the rows you want to edit.
+2. In the bottom bar:
 
-These tools only fill fields that are:
+   * Type a value in **Request by** and click **Enter**.
+   * Type a value in **PR #** and click **Enter**.
+   * Choose a value in **Approved by** and click **Enter**.
 
-* currently visible
-* already in edit mode
-* empty
-
-They do not open rows automatically.
-
-#### Request By
-
-* Targets:
-
-  * `input[data-test-id="input:icf_Request By:"]`
-  * Fallback: `td[data-test-id="field:icf_Request By:"] input`
-* Fills empty open inputs with the value you enter in the bottom-bar control.
-
-#### PR
-
-* Targets:
-
-  * `input[data-test-id="input:icf_PR #"]`
-  * Fallback: `td[data-test-id="field:icf_PR #"] input`
-* Fills empty open inputs with the value you enter.
-
-#### Approved By
-
-* Targets:
-
-  * `input[data-test-id="input:icf_Approved By:"]`
-  * Fallback: `td[data-test-id="field:icf_Approved By:"] input`
-* Attempts to select the matching dropdown option by text, then commits via keyboard.
-
-Approved By dropdown options in the bottom bar:
+Approved By options:
 
 * Brian W NV Ops
 * Erin B Office
@@ -141,100 +108,45 @@ Approved By dropdown options in the bottom bar:
 * Stevie B KY Ops
 * Phil Linscheid CNC
 
-### 6. Unified bottom bar UI
+---
 
-A layout patch:
+## What the script does (brief technical summary)
 
-* Creates a centered bottom bar container (`#jh-bottom-bar`).
-* Moves the main buttons and all three bulk-fill controls into a single row.
-* Restyles the Request By, PR #, and Approved By controls to visually match the primary pill button theme.
+* Reads the PO Delivery Date from:
 
-## UI Elements and hotkeys
+  * `span[data-test-id="field:required_date"]`
+  * Falls back to a label-based search for “Delivery Date”.
 
-### Buttons added
+* Finds line-level Delivery Date inputs using:
 
-* **Copy PO date → lines**
-* **Send to supplier + note**
-* **Request by:** input + Enter
-* **PR #:** input + Enter
-* **Approved by:** dropdown + Enter
+  * `input[data-test-id="input:icf_Delivery Date"]`
+  * Broader Delivery-based fallbacks if IDs change.
 
-### Keyboard shortcuts
+* Sets values using React-safe event patterns:
 
-* **Alt + Shift + D**
-  Runs Copy PO Delivery Date → line Delivery Dates → save rows → attempt Confirm → attempt modal Yes
+  * Native value setter when available.
+  * `input`, `change`, Enter key events, and `blur`.
 
-* **Alt + Shift + S**
-  Opens Send to supplier drawer and fills the note template
+* Saves rows using:
 
-The Request By, PR #, and Approved By controls currently trigger via their Enter buttons or by pressing Enter while focused inside the control.
+  * `button[data-test-id="button:save"]`
+  * Additional fallback selectors if needed.
 
-## Installation
+* Confirms the document by clicking:
 
-1. Install Tampermonkey.
-2. Create a new userscript.
-3. Paste the full script.
-4. Ensure it is enabled.
+  * `button[data-test-id="button:confirm"]`
+  * Or a visible button containing “Confirm”.
 
-Matches:
+* Auto-clicks **Yes** when the modal text matches:
 
-* `https://app.precoro.us/purchase/order/*`
+  * “Are you sure you want to confirm this document?”
 
-Excludes:
+* Opens the “Send to supplier” drawer and fills the note via the TipTap editor.
 
-* `https://app.precoro.us/purchase/order/create/manual`
+---
 
-Run timing:
+## Limitations
 
-* `document-idle`
-
-## Expected workflow
-
-### Copy Delivery Dates fast path
-
-1. Open a PO with line items present.
-2. Click **Copy PO date → lines**
-   or use **Alt + Shift + D**.
-3. The script will:
-
-   * open row edit mode
-   * fill each Delivery Date
-   * save each row
-   * click Confirm
-   * click Yes if the modal appears
-
-### Bulk-fill fields
-
-1. Manually open the rows you want to edit if they are not already editable.
-2. Use the bottom-bar controls for:
-
-   * Request By
-   * PR #
-   * Approved By
-3. Click **Enter** for each control to fill only empty fields.
-
-### Send to supplier note
-
-1. Click **Send to supplier + note**
-   or use **Alt + Shift + S**.
-2. The script will open the send drawer and insert the template.
-
-## Limitations and notes
-
-* Line-item detection relies on current Precoro `data-test-id` patterns and structural fallbacks. If Precoro changes DOM structure significantly, selectors may need updates.
-* The confirm step uses a heuristic based on visibility of Delivery Date inputs and inline save buttons. If your instance uses different controls, the confirm click may trigger early or not at all.
-* Bulk-fill tools do not force rows into edit mode by design. This avoids unintended edits beyond what is already open.
-* The script only adds labels, inputs, and clicks within the active PO page. It does not alter Inbox state, create POs, or handle approvals outside the described flows.
-
-## Changelog
-
-### 3.0
-
-* Consolidated multiple PO helper features into one script.
-* React-safe Delivery Date value setting.
-* Row-level save improvements with `button:save` primary selector.
-* Post-run Confirm auto-clicker.
-* Modal “Yes” auto-clicker.
-* Added Send to supplier + note with TipTap multi-paragraph insertion.
-* Added bottom-bar UI with Request By, PR #, and Approved By bulk-fill tools.
-* Unified layout and styling via bottom-bar alignment patch.
+* If Precoro changes `data-test-id` values or table structure, some features may need selector updates.
+* The Confirm step uses a visibility-based check to infer when row edits are finished, so behavior may vary slightly by instance.
+* Bulk-fill tools are intentionally conservative to avoid unintended edits.
