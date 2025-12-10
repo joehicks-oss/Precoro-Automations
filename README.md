@@ -27,15 +27,7 @@ This Tampermonkey userscript adds a small control bar to Precoro purchase orders
 5. **Make sure it is enabled**
 
 * In the Tampermonkey dashboard, confirm the script toggle is on.
-
-This script runs on:
-
-* `https://app.precoro.us/purchase/order/*`
-
-It does not run on:
-
-* `https://app.precoro.us/purchase/order/create/manual`
-
+* 
 ---
 
 ## What you will see
@@ -57,7 +49,6 @@ A centered bottom bar with:
 Use either:
 
 * Click **Copy PO date → lines**
-* Press **Alt + Shift + D**
 
 What happens:
 
@@ -73,7 +64,6 @@ What happens:
 Use either:
 
 * Click **Send to supplier + note**
-* Press **Alt + Shift + S**
 
 What happens:
 
