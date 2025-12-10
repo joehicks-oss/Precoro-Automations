@@ -46,7 +46,7 @@ A centered bottom bar with:
 
 ### Copy PO Delivery Date to all line Delivery Dates
 
-Use either:
+Use :
 
 * Click **Copy PO date → lines**
 
@@ -61,7 +61,7 @@ What happens:
 
 ### Send to supplier + note
 
-Use either:
+Use :
 
 * Click **Send to supplier + note**
 
