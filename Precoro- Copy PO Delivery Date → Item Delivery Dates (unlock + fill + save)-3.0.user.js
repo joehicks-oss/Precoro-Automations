@@ -31,32 +31,40 @@
   }
 
   // ---------- CLICK EACH ROW'S EDIT (PENCIL) ----------
-  async function unlockRowsForEditing_() {
-    const tableRoot =
-      qs('.document-items-table-wrapper') ||
-      qs('.document-items-table') ||
-      qs('table.document-items-table') ||
-      document;
+async function unlockRowsForEditing_() {
+  const tableRoot =
+    qs('.document-items-table-wrapper') ||
+    qs('.document-items-table') ||
+    qs('table.document-items-table') ||
+    document;
 
-    let editBtns = qsa(
-      'tbody tr button[data-test-id="action-button:edit"], tbody tr .action-button--edit',
-      tableRoot
-    ).filter(b => b.offsetParent !== null);
+  const visible = el => el && el.offsetParent !== null;
 
-    if (editBtns.length === 0) return 0;
+  let editBtns = qsa(
+    'tbody tr button[data-test-id="action-button:edit"], tbody tr .action-button--edit',
+    tableRoot
+  ).filter(visible);
 
-    let opened = 0;
-    for (const btn of editBtns) {
-      const tr = btn.closest('tr');
-      if (tr && tr.querySelector('input, select, [contenteditable="true"]')) continue; // already in edit
-      btn.click();
-      opened++;
-      if (tr) tr.scrollIntoView({ block: 'center' });
-      await sleep(120);
-    }
-    await sleep(300);
-    return opened;
+  // Fallback for pure-SVG edit buttons
+  if (editBtns.length === 0) {
+    editBtns = qsa('tbody tr button', tableRoot)
+      .filter(b => visible(b) && b.querySelector('svg use[href*="#edit"]'));
   }
+
+  if (editBtns.length === 0) return 0;
+
+  let opened = 0;
+  for (const btn of editBtns) {
+    const tr = btn.closest('tr');
+    if (tr && tr.querySelector('input, select, [contenteditable="true"]')) continue; // already in edit
+    btn.click();
+    opened++;
+    if (tr) tr.scrollIntoView({ block: 'center' });
+    await sleep(120);
+  }
+  await sleep(300);
+  return opened;
+}
 
   // ---------- COLLECT ONLY THE DELIVERY DATE INPUTS ----------
   function collectDeliveryInputs_() {
@@ -160,6 +168,7 @@ async function fillDeliveryDates_(poDate) {
   return count;
 }
 
+// ---------- SAVE ALL EDITED ROWS ----------
 async function saveAllEditedRows_() {
   const visible = el => el && el.offsetParent !== null;
 
@@ -172,17 +181,28 @@ async function saveAllEditedRows_() {
   for (const inp of inputs) {
     const tr = inp.closest('tr') || inp.closest('[data-row-key]') || document.body;
 
-    // action cell usually hosts the approve/save + cancel buttons
     const actionCell =
       tr.querySelector('.action-button-list') ||
       tr.querySelector('td .action-button-list') ||
       tr;
 
-    // NEW primary selector for Precoro inline save
-    let saveBtn =
-      actionCell.querySelector('button[data-test-id="button:save"]');
+    let saveBtn = null;
 
-    // keep our old fallbacks in case of variant rows
+    // New primary: row save/approve icon button
+    const approveUse =
+      actionCell.querySelector('button svg use[href*="#action-approve"]') ||
+      actionCell.querySelector('button svg use[href*="approve"]') ||
+      actionCell.querySelector('button svg use[href*="#check"]');
+    if (approveUse) {
+      saveBtn = approveUse.closest('button');
+    }
+
+    // Original primary
+    if (!saveBtn) {
+      saveBtn = actionCell.querySelector('button[data-test-id="button:save"]');
+    }
+
+    // Old fallbacks
     if (!saveBtn) {
       saveBtn =
         actionCell.querySelector('button[data-test-id*="action-button:create"]') ||
@@ -191,13 +211,14 @@ async function saveAllEditedRows_() {
         actionCell.querySelector('button[data-test-id*="update"]') ||
         actionCell.querySelector('button[aria-label*="Apply" i], button[title*="Apply" i]');
     }
-    // global fallbacks if the action cell pattern shifts
+
+    // Global fallback across the page
     if (!saveBtn) {
       saveBtn = Array.from(document.querySelectorAll('button')).find(b =>
         visible(b) && (
           b.matches('button[data-test-id="button:save"]') ||
-          /save|apply|confirm/i.test(b.textContent || '') ||
-          b.querySelector('svg[aria-label*="check" i]')
+          b.querySelector('svg use[href*="#action-approve"]') ||
+          /save|apply|confirm/i.test(b.textContent || '')
         )
       );
     }
@@ -208,13 +229,12 @@ async function saveAllEditedRows_() {
     }
 
     saveBtn.scrollIntoView({ block: 'center' });
-    // robust click sequence for icon-only buttons
     saveBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     saveBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     saveBtn.click();
     saved++;
 
-    // wait for row to exit edit mode or for button to disable (Ant spinner)
+    // wait for row to exit edit mode or for button to disable
     let tries = 0;
     while (tries++ < 30) {
       const stillEditing =
@@ -225,11 +245,10 @@ async function saveAllEditedRows_() {
                        saveBtn.classList.contains('ant-btn-loading');
 
       if (!stillEditing || disabled || !inp.isConnected) break;
-      await new Promise(r => setTimeout(r, 120));
+      await sleep(120);
     }
 
-    // settle a tick before next row
-    await new Promise(r => setTimeout(r, 140));
+    await sleep(140);
   }
 
   return saved;
